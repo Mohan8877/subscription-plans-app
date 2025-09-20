@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upgrade Your Plan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .plan-card {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .plan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .modal-backdrop {
+            transition: opacity 0.3s ease-in-out;
+        }
+        .modal-content {
+            transition: transform 0.3s ease-in-out;
+        }
+        .toast {
+            animation: slide-in 0.5s forwards, slide-out 0.5s 4.5s forwards;
+        }
+        @keyframes slide-in {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @keyframes slide-out {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased">
+
+    <!-- Welcome Modal (Shows on page load) -->
+    <div id="welcomeModal" class="modal-backdrop fixed inset-0 bg-gray-900 bg-opacity-70 flex items-center justify-center p-4 z-50">
+        <div class="modal-content bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Welcome!</h2>
+            <p class="text-gray-600 mb-6">Please enter your email to access the content.</p>
+            <div class="space-y-4">
+                <div>
+                    <label for="welcomeEmailInput" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="welcomeEmailInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="you@example.com">
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-8">
+                <button onclick="handleWelcomeSubmit()" class="w-full px-6 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-semibold transition shadow-sm">Enter Site</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content" class="container mx-auto p-4 md:p-8 hidden">
+
+        <!-- Video Player Section -->
+        <div class="mb-12 bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl font-bold text-gray-900">Video Content</h2>
+                <p id="current-datetime" class="text-sm text-gray-500 font-medium"></p>
+            </div>
+            <div class="aspect-video bg-black rounded-lg overflow-hidden">
+                <!-- Using a placeholder video. Replace with your video source. -->
+                <video id="videoPlayer" class="w-full h-full" controls>
+                    <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <div id="video-message-container" class="mt-4 p-4 bg-red-100 text-red-700 rounded-lg hidden">
+                <p id="video-message">You've reached your viewing limit.</p>
+            </div>
+            <div class="mt-4 text-sm text-gray-600 grid grid-cols-2 gap-x-4 gap-y-2">
+                <p>Current Plan: <span id="currentPlanName" class="font-semibold text-indigo-600">Free</span></p>
+                <p>Profile Status: <span id="profileStatus" class="font-semibold text-gray-800">Standard User</span></p>
+                <p>Time Watched: <span id="timeWatched" class="font-semibold">0</span>s</p>
+                <p>Viewing Limit: <span id="viewingLimit" class="font-semibold">300</span>s</p>
+                <p id="expiry-container" class="hidden col-span-2">Expires on: <span id="planExpiryDate" class="font-semibold"></span></p>
+            </div>
+             <div class="mt-4">
+                 <button id="cancel-sub-btn" onclick="cancelSubscription()" class="hidden px-4 py-2 text-xs rounded-lg text-white bg-red-500 hover:bg-red-600 font-semibold transition shadow-sm">Cancel Subscription</button>
+            </div>
+        </div>
+
+        <!-- Pricing Plans Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Choose Your Plan</h1>
+            <p class="text-lg text-gray-600 max-w-2xl mx-auto">Upgrade to unlock more features and enjoy unlimited content.</p>
+        </div>
+
+        <div id="plans-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Plan cards will be injected here by JavaScript -->
+        </div>
+    </div>
+
+    <!-- User Info Modal -->
+    <div id="userInfoModal" class="modal-backdrop fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="modal-content bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl transform scale-95">
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Subscriber Details</h2>
+            <p class="text-gray-600 mb-6">Please enter your name and email to continue.</p>
+            <div class="space-y-4">
+                <div>
+                    <label for="userNameInput" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <input type="text" id="userNameInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="John Doe">
+                </div>
+                <div>
+                    <label for="userEmailInput" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input type="email" id="userEmailInput" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500" placeholder="you@example.com">
+                </div>
+            </div>
+            <div class="flex justify-end gap-4 mt-8">
+                <button onclick="closeModal('userInfoModal')" class="px-6 py-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold transition">Cancel</button>
+                <button onclick="handleUserInfoSubmit()" class="px-6 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-semibold transition shadow-sm">Continue to Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div id="paymentModal" class="modal-backdrop fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="modal-content bg-white w-full max-w-md p-8 rounded-2xl shadow-2xl transform scale-95">
+            <h2 id="paymentModalTitle" class="text-2xl font-bold text-gray-900 mb-2">Upgrade to Plan</h2>
+            <p class="text-gray-600 mb-6">Confirm your payment to proceed.</p>
+            <div class="bg-gray-100 p-4 rounded-lg mb-6">
+                <div class="flex justify-between items-center text-gray-800">
+                    <span class="font-medium">Plan Name:</span>
+                    <span id="paymentPlanName" class="font-bold"></span>
+                </div>
+                <hr class="my-2 border-gray-200">
+                <div class="flex justify-between items-center text-gray-800">
+                    <span class="font-medium">Amount:</span>
+                    <span id="paymentPlanPrice" class="font-bold text-indigo-600"></span>
+                </div>
+            </div>
+            <div class="flex justify-end gap-4">
+                <button onclick="closePaymentModal()" class="px-6 py-2 rounded-lg text-gray-700 bg-gray-100 hover:bg-gray-200 font-semibold transition">Cancel</button>
+                <button onclick="processPayment()" class="px-6 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-semibold transition shadow-sm">Confirm Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Modal -->
+    <div id="invoiceModal" class="modal-backdrop fixed inset-0 bg-gray-900 bg-opacity-60 flex items-center justify-center p-4 hidden opacity-0">
+        <div class="modal-content bg-white w-full max-w-2xl p-8 rounded-2xl shadow-2xl transform scale-95">
+            <div id="invoiceContent" class="text-gray-800">
+                <div class="flex justify-between items-start mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold text-gray-900">Invoice</h2>
+                        <p class="text-gray-500">Invoice #: <span id="invoiceNumber"></span></p>
+                        <p class="text-gray-500">Date: <span id="invoiceDate"></span></p>
+                    </div>
+                    <div class="text-right">
+                        <h3 class="text-xl font-semibold text-gray-900">Your Company Inc.</h3>
+                        <p class="text-gray-500">123 Your Street, City, Country</p>
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <h4 class="font-semibold text-gray-600 mb-2">Bill To:</h4>
+                    <p id="invoiceUserName" class="font-medium text-gray-900">User Name</p>
+                    <p id="invoiceUserEmail" class="text-gray-500">user.email@example.com</p>
+                </div>
+                <table class="w-full mb-8">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="text-left font-semibold p-3 rounded-l-lg">Description</th>
+                            <th class="text-right font-semibold p-3">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td id="invoiceDescription" class="p-3"></td>
+                            <td id="invoiceAmount" class="text-right font-medium p-3"></td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="font-bold">
+                            <td class="text-right p-3 border-t-2 border-gray-200">Total</td>
+                            <td id="invoiceTotal" class="text-right p-3 border-t-2 border-gray-200"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+                <p class="text-center text-sm text-gray-500">Thank you for your business!</p>
+            </div>
+            <div class="flex justify-end mt-8">
+                <button onclick="closeInvoiceModal()" class="px-6 py-2 rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 font-semibold transition shadow-sm">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50"></div>
+
+
+    <script>
+        const plans = [
+            { id: 'free', name: 'Free', price: 0, limit: 300, features: ['5 mins video/day', 'Basic quality', 'Access to free content'] },
+            { id: 'bronze', name: 'Bronze', price: 10, limit: 420, features: ['7 mins video/day', 'Standard quality (720p)', 'Email support'] },
+            { id: 'silver', name: 'Silver', price: 50, limit: 600, features: ['10 mins video/day', 'Full HD (1080p)', 'Priority email support'] },
+            { id: 'gold', name: 'Gold', price: 100, limit: Infinity, features: ['Unlimited viewing', '4K Ultra HD', '24/7 priority support'] },
+        ];
+
+        let state = {
+            currentPlanId: 'free',
+            selectedPlanId: null,
+            timeWatched: 0,
+            timeInterval: null,
+            userName: '',
+            userEmail: '',
+            planExpiry: null
+        };
+
+        const videoPlayer = document.getElementById('videoPlayer');
+        
+        // --- UI Rendering ---
+        function renderPlans() {
+            const container = document.getElementById('plans-container');
+            container.innerHTML = '';
+            const currentPlanDetails = plans.find(p => p.id === state.currentPlanId);
+
+            plans.forEach(plan => {
+                const isCurrentPlan = state.currentPlanId === plan.id;
+                const isDowngrade = currentPlanDetails.id !== 'free' && plan.price < currentPlanDetails.price;
+
+                const card = document.createElement('div');
+                card.className = `plan-card bg-white p-8 rounded-2xl shadow-md border ${isCurrentPlan ? 'border-indigo-500' : 'border-gray-200'}`;
+                
+                const featuresList = plan.features.map(feature => `
+                    <li class="flex items-center space-x-3">
+                        <svg class="flex-shrink-0 w-5 h-5 text-green-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path></svg>
+                        <span>${feature}</span>
+                    </li>
+                `).join('');
+
+                let buttonText = 'Choose Plan';
+                let buttonClasses = 'bg-indigo-600 text-white hover:bg-indigo-700';
+                let buttonDisabled = false;
+                let buttonAction = `selectPlan('${plan.id}')`;
+
+                if (isCurrentPlan) {
+                    buttonText = 'Current Plan';
+                    buttonClasses = 'bg-gray-200 text-gray-500 cursor-default';
+                    buttonDisabled = true;
+                    buttonAction = '';
+                } else if (isDowngrade) {
+                    buttonText = 'Downgrade Unavailable';
+                    buttonClasses = 'bg-gray-200 text-gray-500 cursor-default';
+                    buttonDisabled = true;
+                    buttonAction = '';
+                }
+
+                card.innerHTML = `
+                    <h3 class="text-2xl font-bold text-gray-900">${plan.name}</h3>
+                    <div class="my-4">
+                        <span class="text-4xl font-extrabold">₹${plan.price}</span>
+                        ${plan.price > 0 ? '<span class="text-gray-500">/month</span>' : ''}
+                    </div>
+                    <ul class="space-y-3 text-gray-600 mb-6">
+                        ${featuresList}
+                    </ul>
+                    <button 
+                        onclick="${buttonAction}"
+                        class="w-full py-3 px-5 font-semibold rounded-lg transition text-center ${buttonClasses}"
+                        ${buttonDisabled ? 'disabled' : ''}
+                    >
+                        ${buttonText}
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+        }
+        
+        function updateVideoUI() {
+            const plan = plans.find(p => p.id === state.currentPlanId);
+            document.getElementById('currentPlanName').textContent = plan.name;
+            document.getElementById('viewingLimit').textContent = plan.limit === Infinity ? 'Unlimited' : `${plan.limit}s`;
+            document.getElementById('timeWatched').textContent = Math.floor(state.timeWatched);
+
+            const expiryContainer = document.getElementById('expiry-container');
+            const expiryDateEl = document.getElementById('planExpiryDate');
+            const cancelBtn = document.getElementById('cancel-sub-btn');
+
+            if (state.planExpiry && state.currentPlanId !== 'free') {
+                expiryDateEl.textContent = state.planExpiry.toLocaleDateString();
+                expiryContainer.classList.remove('hidden');
+                cancelBtn.classList.remove('hidden');
+            } else {
+                expiryContainer.classList.add('hidden');
+                cancelBtn.classList.add('hidden');
+            }
+
+            const profileStatusEl = document.getElementById('profileStatus');
+            if (plan.id !== 'free') {
+                profileStatusEl.innerHTML = `
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        <svg class="w-4 h-4 mr-1.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
+                        Premium User
+                    </span>`;
+            } else {
+                profileStatusEl.textContent = 'Standard User';
+                profileStatusEl.className = 'font-semibold text-gray-800';
+            }
+        }
+
+        // --- Video Logic ---
+        function checkTimeLimit() {
+            const plan = plans.find(p => p.id === state.currentPlanId);
+            if (state.timeWatched >= plan.limit) {
+                videoPlayer.pause();
+                const messageContainer = document.getElementById('video-message-container');
+                messageContainer.classList.remove('hidden');
+                document.getElementById('video-message').textContent = `You've reached your ${plan.name} plan's viewing limit. Please upgrade for more.`;
+            }
+        }
+
+        videoPlayer.addEventListener('play', () => {
+            const messageContainer = document.getElementById('video-message-container');
+            messageContainer.classList.add('hidden');
+            
+            checkTimeLimit();
+            if (videoPlayer.paused) return; // Don't start timer if checkTimeLimit paused it
+            
+            clearInterval(state.timeInterval);
+            state.timeInterval = setInterval(() => {
+                if (!videoPlayer.paused) {
+                    state.timeWatched++;
+                    updateVideoUI();
+                    checkTimeLimit();
+                }
+            }, 1000);
+        });
+
+        videoPlayer.addEventListener('pause', () => {
+            clearInterval(state.timeInterval);
+        });
+
+        videoPlayer.addEventListener('ended', () => {
+            clearInterval(state.timeInterval);
+        });
+        
+        // --- Modal Logic ---
+        function selectPlan(planId) {
+            state.selectedPlanId = planId;
+            // Pre-fill email from welcome modal and name if it exists
+            document.getElementById('userNameInput').value = state.userName;
+            document.getElementById('userEmailInput').value = state.userEmail;
+            openModal('userInfoModal');
+        }
+
+        function handleWelcomeSubmit() {
+            const emailInput = document.getElementById('welcomeEmailInput');
+            const email = emailInput.value.trim();
+
+            if (!/\S+@\S+\.\S+/.test(email)) {
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            state.userEmail = email;
+            
+            const welcomeModal = document.getElementById('welcomeModal');
+            welcomeModal.classList.add('opacity-0');
+            setTimeout(() => welcomeModal.classList.add('hidden'), 300);
+
+            document.getElementById('main-content').classList.remove('hidden');
+        }
+
+        function handleUserInfoSubmit() {
+            const nameInput = document.getElementById('userNameInput');
+            const emailInput = document.getElementById('userEmailInput');
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+
+            if (!name || !email) {
+                showToast('Please enter both your name and email.', 'error');
+                return;
+            }
+            if (!/\S+@\S+\.\S+/.test(email)) {
+                showToast('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            state.userName = name;
+            state.userEmail = email;
+            
+            closeModal('userInfoModal');
+
+            const plan = plans.find(p => p.id === state.selectedPlanId);
+            document.getElementById('paymentModalTitle').textContent = `Upgrade to ${plan.name}`;
+            document.getElementById('paymentPlanName').textContent = plan.name;
+            document.getElementById('paymentPlanPrice').textContent = `₹${plan.price}`;
+            openModal('paymentModal');
+        }
+
+        function closePaymentModal() {
+            closeModal('paymentModal');
+            state.selectedPlanId = null;
+        }
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                modal.querySelector('.modal-content').classList.remove('scale-95');
+            }, 10);
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('opacity-0');
+            modal.querySelector('.modal-content').classList.add('scale-95');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+            }, 300);
+        }
+
+        // --- Payment & Invoice ---
+        function processPayment() {
+            const plan = plans.find(p => p.id === state.selectedPlanId);
+            
+            // --- Simulate backend processing ---
+            setTimeout(() => {
+                state.currentPlanId = state.selectedPlanId;
+                state.timeWatched = 0; // Reset time watched on upgrade
+                
+                if (plan.id !== 'free') {
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + 30);
+                    state.planExpiry = expiry;
+                } else {
+                    state.planExpiry = null;
+                }
+
+                closePaymentModal();
+                updateVideoUI();
+                renderPlans();
+                
+                showToast(`Successfully upgraded to ${plan.name} plan! An email with your invoice has been sent to ${state.userEmail}.`, 'success');
+                
+                // Show invoice after a short delay
+                setTimeout(() => showInvoice(plan), 500);
+            }, 1000);
+        }
+        
+        function cancelSubscription() {
+            state.currentPlanId = 'free';
+            state.planExpiry = null;
+            state.timeWatched = 0;
+            updateVideoUI();
+            renderPlans();
+            showToast('Your subscription has been canceled.', 'success');
+        }
+
+        function showInvoice(plan) {
+            const now = new Date();
+            document.getElementById('invoiceNumber').textContent = Math.floor(Math.random() * 900000) + 100000;
+            document.getElementById('invoiceDate').textContent = now.toLocaleDateString();
+            document.getElementById('invoiceUserName').textContent = state.userName;
+            document.getElementById('invoiceUserEmail').textContent = state.userEmail;
+            document.getElementById('invoiceDescription').textContent = `${plan.name} Plan - Subscription`;
+            document.getElementById('invoiceAmount').textContent = `₹${plan.price.toFixed(2)}`;
+            document.getElementById('invoiceTotal').textContent = `₹${plan.price.toFixed(2)}`;
+            openModal('invoiceModal');
+        }
+        
+        function closeInvoiceModal() {
+            closeModal('invoiceModal');
+        }
+        
+        // --- Toast Notification ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+            
+            toast.className = `toast ${bgColor} text-white p-4 rounded-lg shadow-lg mb-2`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 5000);
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const dateTimeString = now.toLocaleString('en-IN', {
+                dateStyle: 'full',
+                timeStyle: 'medium'
+            });
+            document.getElementById('current-datetime').textContent = dateTimeString;
+        }
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderPlans();
+            updateVideoUI();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+        });
+
+    </script>
+</body>
+</html>
